@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy Xoay | ProxyXoay.com</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+</head>
+<body class="bg-light style-default style-rounded">
+
+    <div class="container">
+        <header class="nav">
+            <div class="nav__holder nav--sticky">
+                <div class="container relative">
+                    <div class="flex-parent">
+                        <a href="#/" class="logo" style="float: left; margin-right: 10px;">
+                            <img class="logo__img" src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" width="50px" height="50px">
+                        </a>
+                        <ul class="nav__menu" style="float: left;">
+                            <li><a href="#/">4G DEVICES MANAGER SYSTEM</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main oh" id="main">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="table-responsive">
+                        <table id="table-request" class="table table-bordered table-hover table-list-request dataTable no-footer" role="grid" aria-describedby="table-request_info">
+                            <thead>
+                                <tr role="row">
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Device</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Serial</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Network</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Signal</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Gateway</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">WAN IP</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Proxy</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Interface</th>
+                                    <th class="sorting_disabled" rowspan="1" colspan="1">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in gateway_data %}
+                                <tr role="row" class="odd" ng-repeat="item in gateway_data">
+                                    <td>{{ item.DeviceName }}</td>
+                                    <td><span style="cursor: pointer" ng-click="copyToClipboard(item.SerialNumber)">{{ item.SerialNumber }}</span></td>
+                                    <td>{{ item.MAC }}</td>
+                                    <td>{{ item.Signal }}</td>
+                                    <td>{{ item.gateway_ip }}</td>
+                                    <td><span class="label label-success" onclick="copyToClipboard(item.WanIPAddress)">{{ item.WanIPAddress }}</span></td>
+                                    <td><span style="cursor: pointer" ng-click="copyToClipboard(item.IPv4 + ':' + item.ProxyPort)" id="ref">{{ item.IPv4 }}:{{ item.ProxyPort }}</span></td>
+                                    <td>{{ item.Interface }}</td>
+                                    <td><a class="btn btn-success btn-xs resetButton" data-gateway-ip="{{ item.gateway_ip }}"><i class="fa fa-refresh"></i> reset</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        var Noti = function(type, msg) {
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                showMethod: 'slideDown',
+                timeOut: 1500
+            };
+            if (type == "success")
+                toastr.success(msg, 'Thông báo');
+            else
+                toastr.error(msg, 'Thất bại');
+        };
+
+        $(document).ready(function() {
+            $('.resetButton').click(function() {
+                var isResetting = $(this).data('isResetting');
+                if (!isResetting) {
+                    $(this).data('isResetting', true);
+                    var gatewayIp = $(this).data('gateway-ip');
+                    var button = this;
+                    $.ajax({
+                        type: 'POST',
+                        url: 'http://192.168.1.3:2828/reset_gateway',
+                        data: { ipv4: gatewayIp, token: '123' },
+                        success: function(res) {
+                            Noti(res.status, "Thành công");
+                        },
+                        complete: function() {
+                            $(button).data('isResetting', false);
+                        }
+                    });
+                }
+            });
+        });
+
+        function copyToClipboard(text) {
+            var link = document.createElement('textarea');
+            link.value = text;
+            document.body.appendChild(link);
+            link.select();
+            document.execCommand('copy');
+            document.body.removeChild(link);
+            Noti("success", "Đã sao chép vào clipboard");
+        }
+
+        $.ajaxSetup({
+            cache: false
+        });
+
+        setInterval(function() {
+            $.ajax({
+                url: '/',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        cuteToast({
+                            type: "success",
+                            message: response.msg,
+                            timer: 5000
+                        });
+
+                        setTimeout(function() {
+                            location.href = '';
+                        }, 500);
+                    } else {
+                        cuteToast({
+                            type: "error",
+                            message: response.msg,
+                            timer: 5000
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", status, error);
+                }
+            });
+        }, 10000);
+    </script>
+</body>
+</html>
